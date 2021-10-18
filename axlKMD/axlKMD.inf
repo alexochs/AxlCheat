@@ -1,0 +1,77 @@
+;
+; axlKMD.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=System ; TODO: specify appropriate Class
+ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=axlKMD.cat
+DriverVer= ; TODO: set DriverVer in stampinf property pages
+PnpLockdown=1
+
+[DestinationDirs]
+DefaultDestDir = 12
+axlKMD_Device_CoInstaller_CopyFiles = 11
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+axlKMD.sys  = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%axlKMD.DeviceDesc%=axlKMD_Device, Root\axlKMD ; TODO: edit hw-id
+
+[axlKMD_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+axlKMD.sys
+
+;-------------- Service installation
+[axlKMD_Device.NT.Services]
+AddService = axlKMD,%SPSVCINST_ASSOCSERVICE%, axlKMD_Service_Inst
+
+; -------------- axlKMD driver install sections
+[axlKMD_Service_Inst]
+DisplayName    = %axlKMD.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\axlKMD.sys
+
+;
+;--- axlKMD_Device Coinstaller installation ------
+;
+
+[axlKMD_Device.NT.CoInstallers]
+AddReg=axlKMD_Device_CoInstaller_AddReg
+CopyFiles=axlKMD_Device_CoInstaller_CopyFiles
+
+[axlKMD_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[axlKMD_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[axlKMD_Device.NT.Wdf]
+KmdfService =  axlKMD, axlKMD_wdfsect
+[axlKMD_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "axlKMD Installation Disk"
+axlKMD.DeviceDesc = "axlKMD Device"
+axlKMD.SVCDESC = "axlKMD Service"
