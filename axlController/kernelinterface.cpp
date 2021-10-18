@@ -10,7 +10,7 @@ KernelInterface::KernelInterface(HANDLE Driver)
 	hDriver = Driver;
 }
 
-DWORD KernelInterface::GetModuleAddress()
+DWORD KernelInterface::GetClientDll()
 {
 	if (hDriver == INVALID_HANDLE_VALUE)
 		return 0;
@@ -18,7 +18,21 @@ DWORD KernelInterface::GetModuleAddress()
 	ULONG Address;
 	DWORD Bytes;
 
-	if (DeviceIoControl(hDriver, IO_GET_MODULEADDRESS, &Address, sizeof(Address), &Address, sizeof(Address), &Bytes, NULL))
+	if (DeviceIoControl(hDriver, IO_GET_CLIENTDLL, &Address, sizeof(Address), &Address, sizeof(Address), &Bytes, NULL))
+		return Address;
+
+	return 0;
+}
+
+DWORD KernelInterface::GetEngineDll()
+{
+	if (hDriver == INVALID_HANDLE_VALUE)
+		return 0;
+
+	ULONG Address;
+	DWORD Bytes;
+
+	if (DeviceIoControl(hDriver, IO_GET_ENGINEDLL, &Address, sizeof(Address), &Address, sizeof(Address), &Bytes, NULL))
 		return Address;
 
 	return 0;

@@ -47,13 +47,14 @@ NTSTATUS IoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	// todo switch case ControlCode and run appropriate function
 	if (ControlCode == IO_SET_MODULEPATH)
 	{
-		modulePathSubstring = *(wchar_t**)Irp->AssociatedIrp.SystemBuffer;
+		//modulePathSubstring = *(wchar_t**)Irp->AssociatedIrp.SystemBuffer;
 
-		DebugMessage("Module path substring set to: %ls", modulePathSubstring);
+		//DebugMessage("Module path substring set to: %ls", modulePathSubstring);
 
 		Status = STATUS_SUCCESS;
 		ByteIO = 0;
 	}
+	
 	else if (ControlCode == IO_REQUEST_PROCESSID)
 	{
 		PULONG Output = (PULONG)Irp->AssociatedIrp.SystemBuffer;
@@ -64,10 +65,20 @@ NTSTATUS IoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		Status = STATUS_SUCCESS;
 		ByteIO = sizeof(*Output);
 	}
-	else if (ControlCode == IO_GET_MODULEADDRESS)
+	else if (ControlCode == IO_GET_CLIENTDLL)
 	{
 		PULONG Output = (PULONG)Irp->AssociatedIrp.SystemBuffer;
-		*Output = moduleAddress;
+		*Output = client;
+
+		DebugMessage("Module Address requested!");
+
+		Status = STATUS_SUCCESS;
+		ByteIO = sizeof(*Output);
+	}
+	else if (ControlCode == IO_GET_ENGINEDLL)
+	{
+		PULONG Output = (PULONG)Irp->AssociatedIrp.SystemBuffer;
+		*Output = engine;
 
 		DebugMessage("Module Address requested!");
 
