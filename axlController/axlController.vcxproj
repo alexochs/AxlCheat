@@ -140,16 +140,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Aimbot.cpp" />
     <ClCompile Include="HackManager.cpp" />
+    <ClCompile Include="Intel.cpp" />
     <ClCompile Include="kernelinterface.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MemoryManager.cpp" />
+    <ClCompile Include="Misc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Aimbot.hpp" />
     <ClInclude Include="communication.hpp" />
     <ClInclude Include="data.hpp" />
     <ClInclude Include="HackManager.hpp" />
+    <ClInclude Include="Intel.hpp" />
     <ClInclude Include="kernelinterface.hpp" />
     <ClInclude Include="hazedumper.hpp" />
+    <ClInclude Include="MemoryManager.hpp" />
+    <ClInclude Include="Misc.hpp" />
     <ClInclude Include="Vector.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

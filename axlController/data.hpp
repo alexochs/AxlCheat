@@ -1,5 +1,17 @@
 #pragma once
 
+extern unsigned long processId;
+
+extern uintptr_t clientDll;
+extern uintptr_t engineDll;
+
+extern uintptr_t clientstate;
+
+extern uintptr_t localPlayer;
+extern uintptr_t entityList;
+
+extern uintptr_t entities[64];
+
 enum BoneList
 {
 	BONE_PELVIS,

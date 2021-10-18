@@ -4,6 +4,9 @@ HackManager::HackManager()
 {
 	Init();
 	ReadAddresses();
+	misc = Misc();
+	intel = Intel();
+	aimbot = Aimbot();
 }
 
 void HackManager::Run()
@@ -13,12 +16,9 @@ void HackManager::Run()
 		ReadAddresses();
 		ReadEntities();
 
-		if (bNoFlash) NoFlash();
-		if (bRadar) Radar();
-		if (bAimbot) Aimbot();
-		if (bGlow) Glow();
-		if (bTrigger) Trigger();
-		if (bBhop) Bhop();
+		misc.Run();
+		intel.Run();
+		aimbot.Run();
 
 		if (bDebug) Debug();
 
@@ -28,11 +28,15 @@ void HackManager::Run()
 
 void HackManager::Init()
 {
+	std::cout <<
+		"###################################################" << std::endl <<
+		"###   AxlCheat - Kernel Edition (Early Alpha)   ###" << std::endl <<
+		"###################################################\n" << std::endl;
+
 	std::cout << "Initializing...\n" << std::endl;
 
 
 	std::cout << "Loading Driver..." << std::endl;
-	driver = KernelInterface("\\\\.\\axlkmd");
 
 	/*std::cout << "Setting Module: ac_client.exe" << std::endl;
 	if (Driver.SetModulePathSubstring(L"\\AssaultCube\\bin_win32\\ac_client.exe lol"))
@@ -41,17 +45,17 @@ void HackManager::Init()
 		std::cout << "Fail :( \n" << std::endl;*/;
 
 	std::cout << "\nRequesting Process ID..." << std::endl;
-	processId = driver.GetProcessId();
+	processId = g_MemoryManager.driver.GetProcessId();
 	if (processId)	std::cout << "Process ID: " << processId << std::endl;
 	else			std::cout << "Fail :(" << std::endl;
 
 	std::cout << "\nRequesting Client DLL..." << std::endl;
-	clientDll = driver.GetClientDll();
+	clientDll = g_MemoryManager.driver.GetClientDll();
 	if (clientDll)	std::cout << "Client DLL: " << clientDll << std::endl;
 	else			std::cout << "Fail :(" << std::endl;
 
 	std::cout << "\nRequesting Engine DLL..." << std::endl;
-	engineDll = driver.GetEngineDll();
+	engineDll = g_MemoryManager.driver.GetEngineDll();
 	if (engineDll)	std::cout << "Engine DLL: " << engineDll << std::endl;
 	else			std::cout << "Fail :(" << std::endl;
 
@@ -62,7 +66,7 @@ void HackManager::Init()
 		{
 			std::cout << "\nRequesting Process ID..." << std::endl;
 
-			processId = driver.GetProcessId();
+			processId = g_MemoryManager.driver.GetProcessId();
 			if (processId)	std::cout << "Process ID: " << processId << std::endl;
 			else			std::cout << "Fail :(\nTrying again in 3 seconds..." << std::endl;
 
@@ -72,7 +76,7 @@ void HackManager::Init()
 		while (!clientDll)
 		{
 			std::cout << "\nRequesting Client DLL..." << std::endl;
-			clientDll = driver.GetClientDll();
+			clientDll = g_MemoryManager.driver.GetClientDll();
 			if (clientDll)	std::cout << "Client DLL: " << clientDll << std::endl;
 			else			std::cout << "Fail :(" << std::endl;
 
@@ -82,7 +86,7 @@ void HackManager::Init()
 		while (!engineDll)
 		{
 			std::cout << "\nRequesting Engine DLL..." << std::endl;
-			engineDll = driver.GetEngineDll();
+			engineDll = g_MemoryManager.driver.GetEngineDll();
 			if (engineDll)	std::cout << "Engine DLL: " << engineDll << std::endl;
 			else			std::cout << "Fail :(" << std::endl;
 
@@ -95,9 +99,9 @@ void HackManager::Init()
 
 void HackManager::ReadAddresses()
 {
-	localPlayer = driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwLocalPlayer, sizeof(uintptr_t));
-	entityList = driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwEntityList, sizeof(uintptr_t));
-	clientstate = driver.ReadVirtualMemory<uintptr_t>(processId, engineDll + hazedumper::signatures::dwClientState, sizeof(uintptr_t));
+	localPlayer = g_MemoryManager.driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwLocalPlayer, sizeof(uintptr_t));
+	entityList = g_MemoryManager.driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwEntityList, sizeof(uintptr_t));
+	clientstate = g_MemoryManager.driver.ReadVirtualMemory<uintptr_t>(processId, engineDll + hazedumper::signatures::dwClientState, sizeof(uintptr_t));
 }
 
 void HackManager::ReadEntities()
@@ -105,164 +109,9 @@ void HackManager::ReadEntities()
 	for (uint32_t i = 1; i < 64; i++)
 	{
 		entities[i] = NULL;
-		uintptr_t entity = driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwEntityList + i * 0x10, sizeof(uintptr_t));
+		uintptr_t entity = g_MemoryManager.driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwEntityList + i * 0x10, sizeof(uintptr_t));
 		if (entity) entities[i] = entity;
 	}
-}
-
-void HackManager::NoFlash()
-{
-	driver.WriteVirtualMemory<uint32_t>(processId, localPlayer + hazedumper::netvars::m_flFlashMaxAlpha, (uint32_t)0, sizeof(uint32_t));
-}
-
-void HackManager::Radar()
-{
-	for (int i = 1; i < 64; i++)
-	{
-		if (entities[i]) driver.WriteVirtualMemory<bool>(processId, entities[i] + hazedumper::netvars::m_bSpotted, true, sizeof(bool));
-	}
-}
-
-void HackManager::Aimbot()
-{
-	float_t localoriginX = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecOrigin, sizeof(float_t));
-	float_t localoriginY = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecOrigin + sizeof(float_t), sizeof(float_t));
-	float_t localoriginZ = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecOrigin + 2 * sizeof(float_t), sizeof(float_t));
-	float_t localoffsetX = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecViewOffset, sizeof(float_t));
-	float_t localoffsetY = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecViewOffset + sizeof(float_t), sizeof(float_t));
-	float_t localoffsetZ = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecViewOffset + 2 * sizeof(float_t), sizeof(float_t));
-	Vector3 local = { localoriginX + localoffsetX, localoriginY + localoffsetY, localoriginZ + localoffsetZ };
-	uint32_t localTeam = driver.ReadVirtualMemory<uint32_t>(processId, localPlayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
-
-	float aimPitch, aimYaw = 420;
-	float minDiff = 999;
-
-	for (int i = 0; i < 64; i++)
-	{
-		if (!entities[i])
-			continue;
-
-		int32_t hp = driver.ReadVirtualMemory<uint32_t>(processId, entities[i] + hazedumper::netvars::m_iHealth, sizeof(int32_t));
-		if (hp < 1)
-			continue;
-
-		uint32_t entityTeam = driver.ReadVirtualMemory<uint32_t>(processId, entities[i] + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
-		if (localTeam == entityTeam)
-			continue;
-
-		/*float_t originX = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin, sizeof(float_t));
-		float_t originY = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin + sizeof(float_t), sizeof(float_t));
-		float_t originZ = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin + 2*sizeof(float_t), sizeof(float_t));
-		float_t offsetX = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset, sizeof(float_t));
-		float_t offsetY = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + sizeof(float_t), sizeof(float_t));
-		float_t offsetZ = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + 2 * sizeof(float_t), sizeof(float_t));*/
-		uintptr_t boneMatrix = driver.ReadVirtualMemory<uintptr_t>(processId, entities[i] + hazedumper::netvars::m_dwBoneMatrix, sizeof(uintptr_t));
-		Vector3 head =
-		{ 
-			driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x0C, sizeof(float_t)),
-			driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x1C, sizeof(float_t)),
-			driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x2C, sizeof(float_t))
-		};
-		
-		Vector3 dst = head - local;
-
-		float yaw = atan2(dst.y, dst.x) * (180 / 3.14);
-		float pitch = -atan(dst.z / sqrt(dst.x * dst.x + dst.y * dst.y)) * (180 / 3.14);
-
-		float_t curYaw = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_angEyeAnglesY, sizeof(float_t));
-		float_t curPitch = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_angEyeAnglesX, sizeof(float_t));
-
-		float diff = sqrt(pow(curYaw - yaw, 2) + pow(curPitch - pitch, 2));
-		if (diff < minDiff)
-		{
-			minDiff = diff;
-			aimPitch = pitch;
-			aimYaw = yaw;
-		}
-	}
-
-	if (aimPitch == 420) return;
-
-	if (aimPitch > 88.0f)
-		aimPitch = 88.0f;
-	if (aimPitch < -88.0f)
-		aimPitch = -88.0f;
-
-	while (aimYaw > 179.0f)
-		aimYaw -= 359.0f;
-	while (aimYaw < -179.0f)
-		aimYaw += 359.0f;
-
-	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && minDiff <= 3.5f) 
-	{
-		driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles, aimPitch, sizeof(float_t));
-		driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + sizeof(float_t), aimYaw, sizeof(float_t));
-		driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + 2 * sizeof(float_t), 0.f, sizeof(float_t));
-		Sleep(250);
-	}
-}
-
-void HackManager::Glow()
-{
-	uint32_t localTeam = driver.ReadVirtualMemory<uint32_t>(processId, localPlayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
-
-	for (int i = 1; i < 64; i++)
-	{
-		uint32_t pPlayer = driver.ReadVirtualMemory<uint32_t>(processId, clientDll + hazedumper::signatures::dwEntityList + i * 0x10, sizeof(uint32_t));
-
-		if (!pPlayer)
-			continue;
-		
-		int32_t hp = driver.ReadVirtualMemory<uint32_t>(processId, pPlayer + hazedumper::netvars::m_iHealth, sizeof(int32_t));
-		if (hp < 1)
-			continue;
-
-		uint32_t entityTeam = driver.ReadVirtualMemory<uint32_t>(processId, pPlayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
-		if (localTeam == entityTeam)
-			continue;
-
-		uint32_t glowIndex = driver.ReadVirtualMemory<uint32_t>(processId, pPlayer + hazedumper::netvars::m_iGlowIndex, sizeof(uint32_t));
-		uint32_t glowObject = driver.ReadVirtualMemory<uint32_t>(processId, clientDll + hazedumper::signatures::dwGlowObjectManager , sizeof(uint32_t));
-
-		driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x8, 1.f, sizeof(float_t));
-		driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0xC, 0.f, sizeof(float_t));
-		driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x10, 0.f, sizeof(float_t));
-		driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x14, 1.f, sizeof(float_t));
-		driver.WriteVirtualMemory<bool>(processId, glowObject + glowIndex * 0x38 + 0x28, true, sizeof(bool));
-		driver.WriteVirtualMemory<bool>(processId, glowObject + glowIndex * 0x38 + 0x29, false, sizeof(bool));
-	}
-}
-
-void HackManager::Trigger()
-{
-	uintptr_t pLocalplayer = driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwLocalPlayer, sizeof(uintptr_t));
-	uint32_t localTeam = driver.ReadVirtualMemory<uint32_t>(processId, pLocalplayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
-	uint32_t inCrosshairId = driver.ReadVirtualMemory<uint32_t>(processId, pLocalplayer + hazedumper::netvars::m_iCrosshairId, sizeof(uint32_t));
-	
-	if (inCrosshairId > 0 && inCrosshairId < 64)
-	{
-		uintptr_t pPlayer = driver.ReadVirtualMemory<uintptr_t>(processId, clientDll + hazedumper::signatures::dwEntityList + (inCrosshairId - 1) * 0x10, sizeof(uintptr_t));
-		uint32_t inCrosshairTeam = driver.ReadVirtualMemory<uint32_t>(processId, pPlayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
-		int32_t inCrosshairHealth= driver.ReadVirtualMemory<int32_t>(processId, pPlayer + hazedumper::netvars::m_iHealth, sizeof(int32_t));
-
-		if (localTeam != inCrosshairTeam && inCrosshairHealth > 0 && (GetKeyState(VK_MENU) & 0x8000))
-		{
-			driver.WriteVirtualMemory<uint32_t>(processId, clientDll + hazedumper::signatures::dwForceAttack, 1, sizeof(uint32_t));
-			Sleep(1);
-			driver.WriteVirtualMemory<uint32_t>(processId, clientDll + hazedumper::signatures::dwForceAttack, 4, sizeof(uint32_t));
-		}
-	}
-}
-
-void HackManager::Bhop()
-{
-	int32_t flags = driver.ReadVirtualMemory<int32_t>(processId, localPlayer + hazedumper::netvars::m_fFlags, sizeof(int32_t));
-	uint32_t buffer;
-	if (flags & 1) buffer = 6;
-	else buffer = 4;
-
-	if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-		driver.WriteVirtualMemory<uint32_t>(processId, clientDll + hazedumper::signatures::dwForceJump, buffer, sizeof(uint32_t));
 }
 
 void HackManager::Debug()
@@ -270,9 +119,9 @@ void HackManager::Debug()
 	for (int i = 1; i < 64; i++)
 	{
 		std::cout << "\nEntity " << i << " @ " << entities[i] << ":" << std::endl;
-		int entityTeam = driver.ReadVirtualMemory<uint32_t>(processId, entities[i] + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
+		int entityTeam = g_MemoryManager.driver.ReadVirtualMemory<uint32_t>(processId, entities[i] + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
 		std::cout << "Team: " << entityTeam << std::endl;
-		bool alive = driver.ReadVirtualMemory<int32_t>(processId, entities[i] + hazedumper::netvars::m_iHealth, sizeof(int32_t)) > 0 ? true : false;
+		bool alive = g_MemoryManager.driver.ReadVirtualMemory<int32_t>(processId, entities[i] + hazedumper::netvars::m_iHealth, sizeof(int32_t)) > 0 ? true : false;
 		std::cout << "Alive: " << alive << std::endl;
 	}
 }
