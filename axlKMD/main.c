@@ -11,8 +11,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT pDriverObject, PUNICODE_STRING pRegistryPath
 	UNREFERENCED_PARAMETER(pRegistryPath);
 
 	DebugMessage("axlKMD loaded!");
-	modulePathSubstring = L"\\Counter-Strike Global Offensive\\csgo\\bin\\client.dll";
-	//DebugMessage("Module path substring set to: %ls", modulePathSubstring);
 
 	pDriverObject->DriverUnload = DriverUnload;
 

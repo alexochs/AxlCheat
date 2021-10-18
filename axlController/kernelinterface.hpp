@@ -13,7 +13,8 @@ public:
 
 	KernelInterface(HANDLE Driver);
 
-	DWORD GetModuleAddress();
+	DWORD GetClientDll();
+	DWORD GetEngineDll();
 
 	bool SetModulePathSubstring(const wchar_t* modulePath);
 

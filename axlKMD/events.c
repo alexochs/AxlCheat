@@ -6,13 +6,14 @@
 
 PLOAD_IMAGE_NOTIFY_ROUTINE ImageLoadCallback(PUNICODE_STRING FullImageName, HANDLE ProcessId, PIMAGE_INFO ImageInfo)
 {
-	if (wcsstr(FullImageName->Buffer, modulePathSubstring))
+	if (wcsstr(FullImageName->Buffer, L"\\Counter-Strike Global Offensive\\csgo\\bin\\client.dll"))
 	{
-		DebugMessage("Module found! \n");
-		DebugMessage("Process ID: %d \n", ProcessId);
-
 		processId = (ULONG)ProcessId;
-		moduleAddress = ImageInfo->ImageBase;
+		client = ImageInfo->ImageBase;
+	}
+	else if (wcsstr(FullImageName->Buffer, L"\\Counter-Strike Global Offensive\\bin\\engine.dll"))
+	{
+		engine = ImageInfo->ImageBase;
 	}
 
 	return STATUS_SUCCESS;

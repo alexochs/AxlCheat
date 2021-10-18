@@ -18,7 +18,10 @@ private:
 	KernelInterface driver;
 	DWORD processId;
 
-	DWORD clientAddress;
+	DWORD clientDll;
+	DWORD engineDll;
+
+	uintptr_t clientstate;
 
 	uintptr_t localPlayer;
 	uintptr_t entityList;
