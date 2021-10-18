@@ -2,10 +2,11 @@
 
 #include <iostream>
 #include <math.h>
-#include "kernelinterface.hpp"
 #include "hazedumper.hpp"
 #include "Vector.hpp"
 #include "data.hpp"
+#include <Windows.h>
+#include "MemoryManager.hpp"
 
 #define MAX_PLAYERS 64;
 
@@ -16,7 +17,8 @@ public:
 
 	void Run();
 private:
-	KernelInterface driver;
+	//KernelInterface driver;
+
 	DWORD processId;
 
 	DWORD clientDll;

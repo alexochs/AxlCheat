@@ -143,6 +143,8 @@
     <ClCompile Include="HackManager.cpp" />
     <ClCompile Include="kernelinterface.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MemoryManager.cpp" />
+    <ClCompile Include="Misc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="communication.hpp" />
@@ -150,6 +152,8 @@
     <ClInclude Include="HackManager.hpp" />
     <ClInclude Include="kernelinterface.hpp" />
     <ClInclude Include="hazedumper.hpp" />
+    <ClInclude Include="MemoryManager.hpp" />
+    <ClInclude Include="Misc.h" />
     <ClInclude Include="Vector.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
