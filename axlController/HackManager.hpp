@@ -7,6 +7,9 @@
 #include "data.hpp"
 #include <Windows.h>
 #include "MemoryManager.hpp"
+#include "Misc.hpp"
+#include "Intel.hpp"
+#include "Aimbot.hpp"
 
 #define MAX_PLAYERS 64;
 
@@ -16,39 +19,16 @@ public:
 	HackManager();
 
 	void Run();
-private:
-	//KernelInterface driver;
-
-	DWORD processId;
-
-	DWORD clientDll;
-	DWORD engineDll;
-
-	uintptr_t clientstate;
-
-	uintptr_t localPlayer;
-	uintptr_t entityList;
-
-	uintptr_t entities[64];
-
-	bool bNoFlash = true;
-	bool bRadar = true;
-	bool bAimbot = true;
-	bool bGlow = true;
-	bool bTrigger = true;
-	bool bBhop = true;
+private:	
+	Misc misc;
+	Intel intel;
+	Aimbot aimbot;
 
 	bool bDebug = false;
 	
 	void Init();
 	void ReadAddresses();
 	void ReadEntities();
-	void NoFlash();
-	void Radar();
-	void Aimbot();
-	void Glow();
-	void Trigger();
-	void Bhop();
 
 	void Debug();
 };
