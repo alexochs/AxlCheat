@@ -134,7 +134,8 @@ void HackManager::Aimbot()
 	Vector3 local = { localoriginX + localoffsetX, localoriginY + localoffsetY, localoriginZ + localoffsetZ };
 	uint32_t localTeam = driver.ReadVirtualMemory<uint32_t>(processId, localPlayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
 
-	float aimPitch, aimYaw;
+	float aimPitch, aimYaw = 420;
+	float minDiff = 999;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -149,22 +150,56 @@ void HackManager::Aimbot()
 		if (localTeam == entityTeam)
 			continue;
 
-		float_t originX = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin, sizeof(float_t));
+		/*float_t originX = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin, sizeof(float_t));
 		float_t originY = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin + sizeof(float_t), sizeof(float_t));
 		float_t originZ = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin + 2*sizeof(float_t), sizeof(float_t));
 		float_t offsetX = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset, sizeof(float_t));
 		float_t offsetY = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + sizeof(float_t), sizeof(float_t));
-		float_t offsetZ = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + 2 * sizeof(float_t), sizeof(float_t));
-		Vector3 head = { originX + offsetX, originY + offsetY, originZ + offsetZ };
-	
+		float_t offsetZ = driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + 2 * sizeof(float_t), sizeof(float_t));*/
+		uintptr_t boneMatrix = driver.ReadVirtualMemory<uintptr_t>(processId, entities[i] + hazedumper::netvars::m_dwBoneMatrix, sizeof(uintptr_t));
+		Vector3 head =
+		{ 
+			driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x0C, sizeof(float_t)),
+			driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x1C, sizeof(float_t)),
+			driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x2C, sizeof(float_t))
+		};
+		
 		Vector3 dst = head - local;
 
-		float yaw = atan(dst.x / dst.y) * 180 / 3.14;
-		float pitch = -atan(dst.z / sqrt(dst.x * dst.x + dst.y * dst.y)) * 180 / 3.14;
+		float yaw = atan2(dst.y, dst.x) * (180 / 3.14);
+		float pitch = -atan(dst.z / sqrt(dst.x * dst.x + dst.y * dst.y)) * (180 / 3.14);
+
+		float_t curYaw = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_angEyeAnglesY, sizeof(float_t));
+		float_t curPitch = driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_angEyeAnglesX, sizeof(float_t));
+
+		float diff = sqrt(pow(curYaw - yaw, 2) + pow(curPitch - pitch, 2));
+		if (diff < minDiff)
+		{
+			minDiff = diff;
+			aimPitch = pitch;
+			aimYaw = yaw;
+		}
 	}
 
-	driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles, aimPitch, sizeof(float_t));
-	driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + sizeof(float_t), aimYaw, sizeof(float_t));
+	if (aimPitch == 420) return;
+
+	if (aimPitch > 88.0f)
+		aimPitch = 88.0f;
+	if (aimPitch < -88.0f)
+		aimPitch = -88.0f;
+
+	while (aimYaw > 179.0f)
+		aimYaw -= 359.0f;
+	while (aimYaw < -179.0f)
+		aimYaw += 359.0f;
+
+	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && minDiff <= 3.5f) 
+	{
+		driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles, aimPitch, sizeof(float_t));
+		driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + sizeof(float_t), aimYaw, sizeof(float_t));
+		driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + 2 * sizeof(float_t), 0.f, sizeof(float_t));
+		Sleep(250);
+	}
 }
 
 void HackManager::Glow()

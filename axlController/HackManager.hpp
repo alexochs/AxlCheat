@@ -5,6 +5,7 @@
 #include "kernelinterface.hpp"
 #include "hazedumper.hpp"
 #include "Vector.hpp"
+#include "data.hpp"
 
 #define MAX_PLAYERS 64;
 
