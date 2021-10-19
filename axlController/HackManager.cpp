@@ -94,6 +94,9 @@ void HackManager::Init()
 		}
 
 		bInit = true;
+
+		std::cout << "\n\n=============================\nSuccessfully initialized! :)\n=============================";
+		std::cout << "\n\n\n(C) Copyright 2021 alexochs.de";
 	}
 }
 

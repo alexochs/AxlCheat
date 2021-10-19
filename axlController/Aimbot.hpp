@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MemoryManager.hpp"
+#include "Vector.hpp"
 
 class Aimbot
 {
@@ -15,5 +16,10 @@ private:
 
 	void Aimer();
 	void Trigger();
+
+	Vector3 GetLocalPlayerHead();
+	int GetEntityIdByCrosshair();
+	Vector3 CalculateAngles(Vector3 source, Vector3 target);
+	void NormalizeAngles(Vector3& angles);
 };
 

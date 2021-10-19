@@ -1,7 +1,6 @@
 #include "Aimbot.hpp"
 #include "data.hpp"
 #include "hazedumper.hpp"
-#include "Vector.hpp"
 #include <cmath>
 
 void Aimbot::Run()
@@ -10,20 +9,27 @@ void Aimbot::Run()
 	if (bTrigger) Trigger();
 }
 
-void Aimbot::Aimer()
+Vector3 Aimbot::GetLocalPlayerHead()
 {
 	float_t localoriginX = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecOrigin, sizeof(float_t));
 	float_t localoriginY = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecOrigin + sizeof(float_t), sizeof(float_t));
 	float_t localoriginZ = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecOrigin + 2 * sizeof(float_t), sizeof(float_t));
+	
 	float_t localoffsetX = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecViewOffset, sizeof(float_t));
 	float_t localoffsetY = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecViewOffset + sizeof(float_t), sizeof(float_t));
 	float_t localoffsetZ = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_vecViewOffset + 2 * sizeof(float_t), sizeof(float_t));
+	
 	Vector3 local = { localoriginX + localoffsetX, localoriginY + localoffsetY, localoriginZ + localoffsetZ };
+
+	return local;
+}
+
+int Aimbot::GetEntityIdByCrosshair()
+{
 	uint32_t localTeam = g_MemoryManager.driver.ReadVirtualMemory<uint32_t>(processId, localPlayer + hazedumper::netvars::m_iTeamNum, sizeof(uint32_t));
 
-	float aimPitch = 0;
-	float aimYaw = 420;
 	float minDiff = 999;
+	int nearest = -1;
 
 	for (int i = 0; i < 64; i++)
 	{
@@ -38,12 +44,6 @@ void Aimbot::Aimer()
 		if (localTeam == entityTeam)
 			continue;
 
-		/*float_t originX = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin, sizeof(float_t));
-		float_t originY = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin + sizeof(float_t), sizeof(float_t));
-		float_t originZ = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecOrigin + 2*sizeof(float_t), sizeof(float_t));
-		float_t offsetX = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset, sizeof(float_t));
-		float_t offsetY = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + sizeof(float_t), sizeof(float_t));
-		float_t offsetZ = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, entities[i] + hazedumper::netvars::m_vecViewOffset + 2 * sizeof(float_t), sizeof(float_t));*/
 		uintptr_t boneMatrix = g_MemoryManager.driver.ReadVirtualMemory<uintptr_t>(processId, entities[i] + hazedumper::netvars::m_dwBoneMatrix, sizeof(uintptr_t));
 		Vector3 head =
 		{
@@ -52,46 +52,71 @@ void Aimbot::Aimer()
 			g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x2C, sizeof(float_t))
 		};
 
-		Vector3 dst = head - local;
+		Vector3 dst = head - GetLocalPlayerHead();
 
 		float yaw = atan2(dst.y, dst.x) * (180 / 3.14);
 		float pitch = -atan(dst.z / sqrt(dst.x * dst.x + dst.y * dst.y)) * (180 / 3.14);
 		float_t curYaw = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_angEyeAnglesY, sizeof(float_t));
 		float_t curPitch = g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, localPlayer + hazedumper::netvars::m_angEyeAnglesX, sizeof(float_t));
-		/*float diff[2] = {pitch - curPitch, yaw - curYaw};
-
-		for (auto i = 0; i < 2; i++) {
-			while (diff[i] < -180.0f) diff[i] += 360.0f;
-			while (diff[i] > 180.0f) diff[i] -= 360.0f;
-		}*/
 
 		float diffLength = sqrt(pow(yaw - curYaw, 2) + pow(pitch - curPitch, 2));
-		if (diffLength < minDiff)
+		if (diffLength < minDiff && diffLength <= 3.5f) // in fov check
 		{
 			minDiff = diffLength;
-			aimPitch = pitch;
-			aimYaw = yaw;
+			nearest = i;
 		}
 	}
 
-	if (aimPitch == 420) return;
+	return nearest;
+}
 
-	if (aimPitch > 88.0f)
-		aimPitch = 88.0f;
-	if (aimPitch < -88.0f)
-		aimPitch = -88.0f;
+Vector3 Aimbot::CalculateAngles(Vector3 source, Vector3 target)
+{
+	Vector3 distance = target - source;
+	return Vector3
+	{ 
+		-atan(distance.z / sqrt(distance.x * distance.x + distance.y * distance.y)) * (180.f / 3.14f),
+		atan2(distance.y, distance.x) * (180.f / 3.14f),
+		0 
+	};
+}
 
-	while (aimYaw > 179.0f)
-		aimYaw -= 359.0f;
-	while (aimYaw < -179.0f)
-		aimYaw += 359.0f;
+void Aimbot::NormalizeAngles(Vector3& angles)
+{
+	if (angles.x > 88.0f)
+		angles.x = 88.0f;
+	if (angles.x < -88.0f)
+		angles.x = -88.0f;
 
-	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000 && minDiff <= 3.5)
+	while (angles.y > 179.0f)
+		angles.y -= 360.0f;
+	while (angles.y < -179.0f)
+		angles.y += 360.0f;
+}
+
+void Aimbot::Aimer()
+{
+	int target = GetEntityIdByCrosshair();
+	if (target == -1) return;
+
+	uintptr_t boneMatrix = g_MemoryManager.driver.ReadVirtualMemory<uintptr_t>(processId, entities[target] + hazedumper::netvars::m_dwBoneMatrix, sizeof(uintptr_t));
+	Vector3 head =
 	{
-		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles, aimPitch, sizeof(float_t));
-		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + sizeof(float_t), aimYaw, sizeof(float_t));
+		g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x0C, sizeof(float_t)),
+		g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x1C, sizeof(float_t)),
+		g_MemoryManager.driver.ReadVirtualMemory<float_t>(processId, boneMatrix + 0x30 * 8 + 0x2C, sizeof(float_t))
+	};
+
+	Vector3 angles = CalculateAngles(GetLocalPlayerHead(), head);
+
+	NormalizeAngles(angles);
+
+	if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+	{
+		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles, angles.x, sizeof(float_t));
+		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + sizeof(float_t), angles.y, sizeof(float_t));
 		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, clientstate + hazedumper::signatures::dwClientState_ViewAngles + 2 * sizeof(float_t), 0.f, sizeof(float_t));
-		Sleep(250);
+		Sleep(250); // todo timing via timer
 	}
 }
 

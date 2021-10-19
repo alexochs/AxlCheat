@@ -39,8 +39,8 @@ void Intel::Glow()
 		uint32_t glowIndex = g_MemoryManager.driver.ReadVirtualMemory<uint32_t>(processId, pPlayer + hazedumper::netvars::m_iGlowIndex, sizeof(uint32_t));
 		uint32_t glowObject = g_MemoryManager.driver.ReadVirtualMemory<uint32_t>(processId, clientDll + hazedumper::signatures::dwGlowObjectManager, sizeof(uint32_t));
 
-		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x8, 1 - (hp / 100), sizeof(float_t));
-		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0xC, hp / 100, sizeof(float_t));
+		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x8, 1 - ((float_t)hp / 100), sizeof(float_t));
+		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0xC, (float_t)hp / 100, sizeof(float_t));
 		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x10, 0.f, sizeof(float_t));
 		g_MemoryManager.driver.WriteVirtualMemory<float_t>(processId, glowObject + glowIndex * 0x38 + 0x14, 1.f, sizeof(float_t));
 		g_MemoryManager.driver.WriteVirtualMemory<bool>(processId, glowObject + glowIndex * 0x38 + 0x28, true, sizeof(bool));
